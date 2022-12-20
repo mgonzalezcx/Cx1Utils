@@ -12,6 +12,7 @@ function cx1login(){
                  --data-raw 'grant_type=refresh_token&client_id=ast-app&refresh_token='$PAT
 }
 
+#get all groups in tenant
 function cx1GetGroups(){
     baseURL=$1
     token=$2
@@ -21,6 +22,7 @@ function cx1GetGroups(){
     curl -X GET $requestURL -H "Authorization: Bearer $token"
 }
 
+#get all projects in tenant
 function cx1GetAllProjects(){
     baseURL=$1
     token=$2
@@ -30,13 +32,16 @@ function cx1GetAllProjects(){
     curl -X GET $requestURL -H "Authorization: Bearer $token"
 }
 
-
+#get project details by name
 function cx1GetProject(){
     baseURL=$1
     token=$2
-    project=$3
+    project="$3"
 
-    requestURL=$baseURL"/projects/?name=$project"
+    #remove white spaces from name
+    projectName=${project// /'%20'}
+
+    requestURL=$baseURL"/projects/?name="$projectName
 
     curl -X GET $requestURL -H "Authorization: Bearer $token"
 }
@@ -45,28 +50,39 @@ function cx1PatchProjectPreset(){
     baseURL=$1
     token=$2
     projectId=$3
-    presetName=$4
+    preset="$4"
 
     requestURL=$baseURL"/configuration/project?project-id=$projectId"
+
+    #json body to update the preset
+    body='[
+            {
+                    "key": "scan.config.sast.presetName",
+                    "name": "presetName",
+                    "category": "sast",
+                    "originLevel": "Project",
+                    "value": "'$presetName'",
+                    "allowOverride": true
+            }
+          ]'
+
+    curl --location --request PATCH $requestURL \
+         --header "Authorization: Bearer $token" \
+         --header 'Content-Type: application/json' \
+         --data "$body"
+
+}
+
+function updatePreset(){
+    cx1URL=$1
+    token=$2
+    projectName="$3"
+    preset=$4
     
-#    body="{
-#            'key': 'scan.config.sast.prestName',
-#            'name': 'presetName',
-#            'category': 'sast',
-#            'originLevel': 'project',
-#            'value': $preset,
-#            'allowOverride': true
-#        }"
-    echo "this is the body"
-    body=$(jq --null-input \
-            --arg key "scan.config.sast.presetName" \
-            --arg name "presetName" \
-            --arg category "sast" \
-            --arg originLevel "project" \
-            --arg value "$presetName" \
-            --arg allowOverride true \
-            '{"key": $key,"name": $name,"category": $category,"originLevel": $originLevel,"value": $value,"allowOverride": $allowOverride}') 
+    projectInfo=$(cx1GetProject $cx1URL $token "$projectName")
     
-    echo "${body}"
-    #curl -X PATCH $requestURL -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d "${body}"
+    projectId=$(echo $projectInfo | jq -r '.projects[0].id')
+
+    result=$(cx1PatchProjectPreset $cx1URL $token $projectId "$preset")
+    echo $result
 }

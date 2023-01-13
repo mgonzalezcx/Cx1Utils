@@ -48,15 +48,4 @@ while IFS==",", read -r projectName presetName;  do
         ((++count))
     fi
 done < $csvPath
-#get list of groups
-#echo "Getting groups"
-#groups=$(cx1GetGroups $cx1IamURL $token)
 
-
-#echo $groups
-#get list of projects
-#projectsJson=$(cx1GetProjects $cx1URL $token)
-#echo $projectsJson | jq -r '.projects'
-
-#projectCount=$(echo $projectsJson | jq '.projects | length')
-#echo $projectCount

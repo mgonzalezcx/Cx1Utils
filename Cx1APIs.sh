@@ -13,7 +13,7 @@ function cx1login(){
 }
 
 #get all groups in tenant
-function cx1GetGroups(){
+function getGroups(){
     baseURL=$1
     token=$2
 
@@ -22,8 +22,20 @@ function cx1GetGroups(){
     curl -X GET $requestURL -H "Authorization: Bearer $token"
 }
 
+function getGroupByName(){
+    baseURL=$1
+    token=$2
+    groupName=$3
+
+    groups=$(getGroups $baseURL $token)
+
+    groupInfo=$(echo $groups | jq -r '.[] | select (.name=="'"$group"'")')
+
+    echo $groupInfo
+}
+
 #get all projects in tenant
-function cx1GetAllProjects(){
+function getAllProjects(){
     baseURL=$1
     token=$2
 
@@ -33,7 +45,7 @@ function cx1GetAllProjects(){
 }
 
 #get project details by name
-function cx1GetProject(){
+function getProject(){
     baseURL=$1
     token=$2
     project="$3"
@@ -46,7 +58,8 @@ function cx1GetProject(){
     curl -X GET $requestURL -H "Authorization: Bearer $token"
 }
 
-function cx1PatchProjectPreset(){
+#Api to update the project rules to add a preset
+function patchProjectPreset(){
     baseURL=$1
     token=$2
     projectId=$3
@@ -73,6 +86,7 @@ function cx1PatchProjectPreset(){
 
 }
 
+#Grab project id from project api response to add a preset by name
 function updatePreset(){
     cx1URL=$1
     token=$2
@@ -85,4 +99,96 @@ function updatePreset(){
 
     result=$(cx1PatchProjectPreset $cx1URL $token $projectId "$preset")
     echo $result
+}
+
+#Create a new group by name
+function createGroup(){
+    baseURL=$1
+    token=$2
+    groupName="$3"
+
+    requestURL=$baseURL'/groups'
+
+    body='{
+            "name": "'$groupName'"
+          }'
+
+    curl --location --request POST $requestURL \
+         --header "Authorization: Bearer $token" \
+         --header 'Content-Type: application/json' \
+         --data "$body"
+}
+
+#Delete group by ID
+function deleteGroup(){
+    baseURL=$1
+    token=$2
+    groupID="$3"
+
+    requestURL=$baseURL'/groups/'$groupID
+
+    curl --location --request DELETE $requestURL \
+         --header "Authorization: Bearer $token" 
+}
+
+function updateGroupRole(){
+    baseURL=$1
+    token=$2
+    groupName="$3"
+    roleName="$4"
+    groups=$5
+
+    #Find the Id of the group that will be updated
+    if [ -z "$groups" ]
+    then
+        groupInfo=$(getGroupByName $baseURL $token "$groupName")
+    else
+        groupInfo=$(echo $groups | jq -r '.[] | select (.name=="'"$groupName"'")')
+    fi
+    
+    groupId=$(echo $groupInfo | jq -r '.id')
+    #Get the client id for ast-app
+    clientId=$(getClientIdByName $baseURL $token "ast-app")
+
+    #Get the role info
+    roleInfo=$(getRoleByName $baseURL $token "$roleName")
+
+    
+    requestURL=$baseURL'/groups/'$groupId'/role-mappings/clients/'$clientId
+
+    curl --location --request POST $requestURL \
+         --header "Authorization: Bearer $token" \
+         --header 'Content-Type: application/json' \
+         --data "[$roleInfo]"
+}
+
+
+function getClientIdByName(){
+    baseURL=$1
+    token=$2
+    client="$3"
+
+    requestURL=$baseURL'/clients'
+
+    clients=$(curl -X GET $requestURL -H "Authorization: Bearer $token")
+
+    clientId=$(echo $clients | jq -r '.[] | select (.clientId=="'"$client"'") | '.id'')
+
+    echo $clientId
+}
+
+function getRoleByName(){
+    baseURL=$1
+    token=$2
+    roleName=$3
+
+    astappID=$(getClientIdByName $baseURL $token "ast-app")
+
+    requestURL=$baseURL'/clients/'$astappID'/roles'
+
+    roles=$(curl -X GET $requestURL -H "Authorization: Bearer $token")
+
+    targetRole=$(echo $roles | jq -r '.[] | select(.name=="'$role'")')
+    
+    echo $targetRole
 }

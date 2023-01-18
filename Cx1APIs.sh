@@ -136,24 +136,30 @@ function updateGroupRole(){
     token=$2
     groupName="$3"
     roleName="$4"
-    groups=$5
+    groups="$5"
+    roles="$6"
 
     #Find the Id of the group that will be updated
     if [ -z "$groups" ]
     then
         groupInfo=$(getGroupByName $baseURL $token "$groupName")
     else
-        groupInfo=$(echo $groups | jq -r '.[] | select (.name=="'"$groupName"'")')
+        groupInfo=$(echo "$groups" | jq -r '.[] | select (.name=="'"$groupName"'")')
     fi
-    
+
+    #Get the id of the group
     groupId=$(echo $groupInfo | jq -r '.id')
     #Get the client id for ast-app
     clientId=$(getClientIdByName $baseURL $token "ast-app")
 
     #Get the role info
-    roleInfo=$(getRoleByName $baseURL $token "$roleName")
+    if [ -z "$roles" ]
+    then
+        roleInfo=$(getRoleByName $baseURL $token "$roleName")
+    else
+        roleInfo=$(echo $roles | jq -r '.[] | select(.name=="'$roleName'")')
+    fi
 
-    
     requestURL=$baseURL'/groups/'$groupId'/role-mappings/clients/'$clientId
 
     curl --location --request POST $requestURL \
@@ -175,6 +181,17 @@ function getClientIdByName(){
     clientId=$(echo $clients | jq -r '.[] | select (.clientId=="'"$client"'") | '.id'')
 
     echo $clientId
+}
+
+function getRoles(){
+    baseURL=$1
+    token=$2
+
+    astappID=$(getClientIdByName $baseURL $token "ast-app")
+
+    requestURL=$baseURL'/clients/'$astappID'/roles'
+
+    curl -X GET $requestURL -H "Authorization: Bearer $token"
 }
 
 function getRoleByName(){

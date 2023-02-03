@@ -149,6 +149,7 @@ function updateGroupRole(){
 
     #Get the id of the group
     groupId=$(echo $groupInfo | jq -r '.id')
+    
     #Get the client id for ast-app
     clientId=$(getClientIdByName $baseURL $token "ast-app")
 
@@ -157,7 +158,7 @@ function updateGroupRole(){
     then
         roleInfo=$(getRoleByName $baseURL $token "$roleName")
     else
-        roleInfo=$(echo $roles | jq -r '.[] | select(.name=="'$roleName'")')
+        roleInfo=$(echo "$roles" | jq -r '.[] | select(.name=="'"$roleName"'")')
     fi
 
     requestURL=$baseURL'/groups/'$groupId'/role-mappings/clients/'$clientId

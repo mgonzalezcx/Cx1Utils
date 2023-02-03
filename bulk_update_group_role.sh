@@ -36,7 +36,19 @@ while IFS==",", read -r groupName roleName ;  do
             exit 1
         fi
     else
-    #update the role
+    #check to see if the group exists
+    unset groupInfo
+    groupInfo=$(echo $groups | jq -r '.[] | select (.name=="'"$groupName"'")')
+        if [[ -z "$groupInfo" ]]
+        then
+            response=$(createGroup $cx1IamURL $token "$groupName")
+            unset groups
+            groups=$(getGroups $cx1IamURL $token)
+
+            echo "Created group: $groupName" >> $log
+        fi
+        #update the role
+        echo "This is the groupName: $groupName and this is the roleName: $roleName" >> $log
         update=$(updateGroupRole $cx1IamURL $token "$groupName" "$roleName" "$groups" "$roles")
         echo $update >> $log
        

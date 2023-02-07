@@ -58,6 +58,31 @@ function getProject(){
     curl -X GET $requestURL -H "Authorization: Bearer $token"
 }
 
+#Add group to a project
+function updateProjectGroup(){
+    baseURL=$1
+    token=$2
+    projectInfo="$3"
+    groupId="$4"
+
+    projectId=$(echo "$projectInfo" | jq -r '.id')
+    projectName=$(echo "$projectInfo" | jq -r '.name')
+
+    requestURL=$baseURL"/projects/$projectId"
+    
+    body='{
+            "name": "'"$projectName"'",
+            "groups": [
+                        "'"$groupId"'"
+                      ]
+          }'
+
+    curl --location --request PUT $requestURL \
+         --header "Authorization: Bearer $token" \
+         --header 'Content-Type: application/json' \
+         --data "$body"
+}
+
 #Api to update the project rules to add a preset
 function patchProjectPreset(){
     baseURL=$1
@@ -66,7 +91,7 @@ function patchProjectPreset(){
     preset="$4"
 
     requestURL=$baseURL"/configuration/project?project-id=$projectId"
-
+    
     #json body to update the preset
     body='[
             {

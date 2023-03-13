@@ -6,8 +6,7 @@ clientId="api_client"
 clientSecret="ar20YVywgpPdKkIGg4pTm2h87fi0mIxW"
 cx1URL="https://ast.checkmarx.net/api"
 cx1TokenURL="https://iam.checkmarx.net/auth/realms/"$cx1Tenant"/protocol/openid-connect/token"
-project="TestProject"
-app="My Second App 222"
+project="Jenkins_NodeGoat"
 
 #generate a token
 auth=$(curl --location --request POST $cx1TokenURL --header 'Content-Type: application/x-www-form-urlencoded' --data-raw 'grant_type=client_credentials&client_id='"$clientId"'&client_secret='$clientSecret)
@@ -20,6 +19,7 @@ projectData=$(curl -X GET $requestURL -H "Authorization: Bearer $token")
 projectId=$(echo $projectData | jq -r '.projects[].id')
 
 #get application info
+app=$(echo $projectData | jq -r '.projects[].tags.APP')
 appName=${app// /'%20'}
 requestURL=$cx1URL"/applications/?offset=0&limit=20&name="$appName
 appData=$(curl -X GET $requestURL -H "Authorization: Bearer $token")
